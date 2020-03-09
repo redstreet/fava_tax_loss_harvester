@@ -23,11 +23,34 @@
 {{ querytable.querytable(None, *harvests[0]) }}
 <br />
 
+
+<table class="sortable">
+  <thead>
+    <tr>
+      <th data-sort="string">{{ _('Summary') }}</th>
+      <th data-sort="string">{{ _('Val') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    {% for key, value in harvests[1].items() %}
+    <tr>
+      <td>{{ key }}</td>
+      <td class="num">{{ value }}</td>
+    </tr>
+    {% endfor %}
+
+  </tbody>
+</table>
+<br />
+
+
+
 <h3>Purchases within the past 30 days creating wash sales</h3>
-{% if harvests[1]|length == 0 %}
+{% if harvests[2]|length == 0 %}
    <p>None found!</p>
 {% else %}
-  {% for wash_buys in harvests[1] %}
+  {% for wash_buys in harvests[2] %}
       {{ querytable.querytable(None, *wash_buys) }}
       <br />
   {% endfor %}
