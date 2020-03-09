@@ -17,7 +17,20 @@
 <h2>Tax Loss Harvester</h2>
 <br />
 
-{% set retval = extension.harvestable(None, None) %}
-<h3>{{retval[0][0]}}</h3>
-{{ querytable.querytable(None, *retval[0][1]) }}
+{% set harvests = extension.harvestable(None, None) %}
+
+<h3>Candidates for tax loss harvesting</h3>
+{{ querytable.querytable(None, *harvests[0]) }}
+<br />
+
+<h3>Purchases within the past 30 days creating wash sales</h3>
+{% if harvests[1]|length == 0 %}
+   <p>None found!</p>
+{% else %}
+  {% for wash_buys in harvests[1] %}
+      {{ querytable.querytable(None, *wash_buys) }}
+      <br />
+  {% endfor %}
+{% endif %}
+
 

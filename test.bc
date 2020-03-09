@@ -5,21 +5,30 @@ option "render_commas" "True"
 2010-01-01 open Assets:Investments:XTrade
 2010-01-01 open Assets:Bank
 
-2020-02-28 * "Buy stock"
+2020-02-01 * "Buy stock"
  Assets:Investments:XTrade 700 BNCT {200 USD}
  Assets:Bank
 
-2020-02-29 * "Buy stock"
+2020-02-02 * "Buy stock"
  Assets:Investments:XTrade 20 COFE {100 USD}
  Assets:Bank
 
-2020-02-25 * "Buy stock"
- Assets:Investments:XTrade 20 SUGR {10 USD}
+2020-02-03 * "Buy stock"
+ Assets:Investments:XTrade 20 UPUP {10 USD}
+ Assets:Bank
+
+2020-02-20 * "Buy stock"
+ Assets:Investments:XTrade 20 DNRCNT {10 USD}
+ Assets:Bank
+
+2020-02-20 * "Buy stock"
+ Assets:Investments:XTrade 1 BNCT {195 USD}
  Assets:Bank
 
 2020-03-08 price BNCT 150 USD
-2020-03-08 price COFE 95 USD
-2020-03-08 price SUGR 25 USD
+2020-03-08 price COFE  95 USD
+2020-03-08 price UPUP  25 USD
+2020-03-08 price DNRCNT   5 USD
 
 2010-01-01 custom "fava-extension" "plugins.fava.tlh" "{}"
 
