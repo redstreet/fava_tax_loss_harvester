@@ -13,7 +13,16 @@ option "render_commas" "True"
  Assets:Investments:XTrade 20 COFE {100 USD}
  Assets:Bank
 
+2020-02-25 * "Buy stock"
+ Assets:Investments:XTrade 20 SUGR {10 USD}
+ Assets:Bank
+
 2020-03-08 price BNCT 150 USD
 2020-03-08 price COFE 95 USD
+2020-03-08 price SUGR 25 USD
 
 2010-01-01 custom "fava-extension" "plugins.fava.tlh" "{}"
+
+2010-01-01 custom "fava-extension" "plugins.fava.asset-allocation" "[
+        ('account_name_pattern', 'Assets:Investments:[^:]*$', 'include_children')
+    ]"

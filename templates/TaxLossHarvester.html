@@ -1,6 +1,6 @@
 {% import "_query_table.html" as querytable with context %}
 
-{% set harvestable = 'SELECT LEAF(account),
+{% set qharvestable = 'SELECT LEAF(account),
         units(sum(position)) as units,
         cost_number as cost,
         first(getprice(currency, cost_currency)) as price,
@@ -17,10 +17,7 @@
 <h2>Tax Loss Harvester</h2>
 <br />
 
-{% set query_string = harvestable %}
-<p>
-<a href={{ url_for('report', report_name='query', query_string=query_string) }}>Query</a>
-{{ querytable.download_links(query_string) }}
-</p>
-{% set contents, result_types, result_rows = ledger.query_shell.execute_query(query_string) %}
-{{ querytable.querytable(contents, result_types, result_rows, filter_empty=1) }}
+{% set retval = extension.harvestable(None, None) %}
+<h3>{{retval[0][0]}}</h3>
+{{ querytable.querytable(None, *retval[0][1]) }}
+
