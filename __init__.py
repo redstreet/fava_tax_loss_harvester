@@ -20,21 +20,21 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
         """
 
         sql = """
-        SELECT LEAF(account) as account_leaf,
+        SELECT {account_field} as account,
             units(sum(position)) as units,
             cost_date as acquisition_date,
             value(sum(position)) as market_value,
             cost(sum(position)) as basis
           WHERE account_sortkey(account) ~ "^[01]" AND
-            account ~ '{}' AND
+            account ~ '{accounts_pattern}' AND
             date <= DATE_ADD(TODAY(), -30)
-          GROUP BY LEAF(account), cost_date, currency, cost_currency, cost_number, account_sortkey(account)
+          GROUP BY {account_field}, cost_date, currency, cost_currency, cost_number, account_sortkey(account)
           ORDER BY account_sortkey(account), currency, cost_date
-        """.format(self.config.get('accounts_pattern', ''))
+        """.format(account_field=self.config.get('account_field', 'LEAF(account)'),
+                accounts_pattern=self.config.get('accounts_pattern', ''))
         contents, rtypes, rrows = self.ledger.query_shell.execute_query(sql)
         if not rtypes:
-            retval = (title, ([], []))
-            return [retval]
+            return [], {}, [[]]
 
         # Since we GROUP BY cost_date, currency, cost_currency, cost_number, we never expect any of the
         # inventories we get to have more than a single position. Thus, we can and should use
@@ -66,13 +66,13 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
                     recently_bought[ticker] = recent
                 wash = '*' if len(recent[1]) else ''
 
-                to_sell.append(RetRow(row.account_leaf, row.units, row.acquisition_date, 
+                to_sell.append(RetRow(row.account, row.units, row.acquisition_date, 
                     row.market_value, loss, wash))
 
         # Summary
         summary = {}
         summary["Total transactions"] = '{}'.format(len(to_sell))
-        unique_txns = set((r.account_leaf, r.units.get_only_position().units.currency) for r in to_sell)
+        unique_txns = set((r.account, r.units.get_only_position().units.currency) for r in to_sell)
         summary["Total unique transactions"] = '{}'.format(len(unique_txns))
         summary["Total harvestable loss"] = sum(i.loss for i in to_sell)
         summary["Total sale value required"] = int(sum(i.market_value.get_only_position().units.number for i in to_sell))
@@ -93,10 +93,11 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
 
         wash_pattern = self.config.get('wash_pattern', '')
         wash_pattern_sql = 'AND account ~ "{}"'.format(wash_pattern) if wash_pattern else ''
+        account_field=self.config.get('account_field', 'LEAF(account)')
 
         sql = '''
         SELECT
-            LEAF(account) as account_leaf,
+            {account_field} as account,
             units(sum(position)) as units,
             date as acquisition_date,
             cost(sum(position)) as basis
@@ -104,7 +105,7 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
             date >= DATE_ADD(TODAY(), -30)
             {wash_pattern_sql}
             AND currency = "{ticker}"
-          GROUP BY date,LEAF(account)
+          GROUP BY date,{account_field}
           ORDER BY date DESC
           '''.format(**locals())
         contents, rtypes, rrows = self.ledger.query_shell.execute_query(sql)

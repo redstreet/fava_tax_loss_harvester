@@ -30,7 +30,9 @@ option "render_commas" "True"
 2020-03-08 price UPUP  25 USD
 2020-03-08 price DNRCNT   5 USD
 
-2010-01-01 custom "fava-extension" "plugins.fava.tlh" "{}"
+2010-01-01 custom "fava-extension" "plugins.fava.tlh" "{
+'account_field': 'account'
+}"
 
 2010-01-01 custom "fava-extension" "plugins.fava.asset-allocation" "[
         ('account_name_pattern', 'Assets:Investments:[^:]*$', 'include_children')
