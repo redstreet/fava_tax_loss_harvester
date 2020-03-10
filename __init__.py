@@ -69,14 +69,13 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
                 to_sell.append(RetRow(row.account_leaf, row.units, row.acquisition_date, 
                     row.market_value, loss, wash))
 
-        # Summary footer row
-        # total_txns = '{} ({} sets)'.format(len(to_sell), len(unique_txns))
-
+        # Summary
         summary = {}
         summary["Total transactions"] = '{}'.format(len(to_sell))
+        unique_txns = set((r.account_leaf, r.units.get_only_position().units.currency) for r in to_sell)
+        summary["Total unique transactions"] = '{}'.format(len(unique_txns))
         summary["Total harvestable loss"] = sum(i.loss for i in to_sell)
         summary["Total sale value required"] = int(sum(i.market_value.get_only_position().units.number for i in to_sell))
-
 
         harvestable_table = retrow_types, to_sell
         recents = self.build_recents(recently_bought)
