@@ -6,7 +6,7 @@ option "render_commas" "True"
 2010-01-01 open Assets:Bank
 
 2020-02-01 * "Buy stock"
- Assets:Investments:XTrade 700 BNCT {200 USD}
+ Assets:Investments:XTrade 7000 BNCT {200 USD}
  Assets:Bank
 
 2020-02-02 * "Buy stock"
@@ -25,13 +25,16 @@ option "render_commas" "True"
  Assets:Investments:XTrade 1 BNCT {195 USD}
  Assets:Bank
 
-2020-03-08 price BNCT 150 USD
-2020-03-08 price COFE  95 USD
-2020-03-08 price UPUP  25 USD
-2020-03-08 price DNRCNT   5 USD
+2020-03-08 price BNCT   150   USD
+2020-03-08 price COFE    95   USD
+2020-03-08 price UPUP    25   USD
+2020-03-08 price DNRCNT   5   USD
 
 2010-01-01 custom "fava-extension" "plugins.fava.tlh" "{
-'account_field': 'account'
+  'account_field': 'account',
+  'accounts_pattern': 'Assets:Investments',
+  'loss_threshold': 50,
+  'wash_pattern': 'Assets:Investments',
 }"
 
 2010-01-01 custom "fava-extension" "plugins.fava.asset-allocation" "[
