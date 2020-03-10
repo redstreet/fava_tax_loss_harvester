@@ -47,6 +47,13 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
         # our output table is slightly different from our query table:
         retrow_types = rtypes[:-1] +  [('loss', Decimal), ('wash', str)]
 
+        # rtypes:
+        # [('account', <class 'str'>),
+        #  ('units', <class 'beancount.core.inventory.Inventory'>),
+        #  ('acquisition_date', <class 'datetime.date'>),
+        #  ('market_value', <class 'beancount.core.inventory.Inventory'>),
+        #  ('basis', <class 'beancount.core.inventory.Inventory'>)]
+
         RetRow = collections.namedtuple('RetRow', [i[0] for i in retrow_types])
 
         def val(inv):
@@ -125,6 +132,5 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
 #       - assert specid / "STRICT"
 #     - bells and whistles:
 #       - use query context (dates? future and past?)
-#       - accounts links
 #       - csv download
 
