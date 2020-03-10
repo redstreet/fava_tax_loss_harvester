@@ -91,12 +91,8 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
     def query_recently_bought(self, ticker):
         """Looking back 30 days for purchases that would cause wash sales"""
 
-        # TODO: move to an init function
         wash_pattern = self.config.get('wash_pattern', '')
-        wash_pattern_exclude = self.config.get('wash_pattern_exclude', '')
         wash_pattern_sql = 'AND account ~ "{}"'.format(wash_pattern) if wash_pattern else ''
-        wash_pattern_exclude_sql = 'AND NOT STR(account) ~ "{}"'.format(wash_pattern_exclude) \
-                if wash_pattern_exclude else ''
 
         sql = '''
         SELECT
@@ -107,7 +103,6 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
           WHERE
             date >= DATE_ADD(TODAY(), -30)
             {wash_pattern_sql}
-            {wash_pattern_exclude_sql}
             AND currency = "{ticker}"
           GROUP BY date,LEAF(account)
           ORDER BY date DESC
