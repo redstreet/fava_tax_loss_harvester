@@ -1,10 +1,11 @@
 """Tax loss harvester extension for Fava.
 """
 import collections
+import locale
 import re
 
 from beancount.core.data import iter_entry_dates, Open
-from beancount.core.number import ZERO, Decimal
+from beancount.core.number import ZERO, Decimal, D
 
 from fava.ext import FavaExtensionBase
 
@@ -44,7 +45,8 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
         loss_threshold = self.config.get('loss_threshold', 1)
 
         # our output table is slightly different from our query table:
-        retrow_types = rtypes[:-1] +  [('loss', int), ('wash', str)]
+        retrow_types = rtypes[:-1] +  [('loss', Decimal), ('wash', str)]
+
         RetRow = collections.namedtuple('RetRow', [i[0] for i in retrow_types])
 
         def val(inv):
@@ -56,7 +58,7 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
         for row in rrows:
             if row.market_value.get_only_position() and \
              (val(row.market_value) - val(row.basis) < -loss_threshold):
-                loss = int(val(row.basis) - val(row.market_value))
+                loss = D(val(row.basis) - val(row.market_value))
 
                 # find wash sales
                 ticker = row.units.get_only_position().units.currency
@@ -70,12 +72,14 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
                     row.market_value, loss, wash))
 
         # Summary
+        locale.setlocale(locale.LC_ALL, '')
         summary = {}
-        summary["Total transactions"] = '{}'.format(len(to_sell))
+        summary["Total transactions"] = len(to_sell)
         unique_txns = set((r.account, r.units.get_only_position().units.currency) for r in to_sell)
-        summary["Total unique transactions"] = '{}'.format(len(unique_txns))
+        summary["Total unique transactions"] = len(unique_txns)
         summary["Total harvestable loss"] = sum(i.loss for i in to_sell)
-        summary["Total sale value required"] = int(sum(i.market_value.get_only_position().units.number for i in to_sell))
+        summary["Total sale value required"] = sum(i.market_value.get_only_position().units.number for i in to_sell)
+        summary = {k:'{:n}'.format(v) for k,v in summary.items()}
 
         harvestable_table = retrow_types, to_sell
         recents = self.build_recents(recently_bought)
