@@ -15,6 +15,9 @@ proceeds (1,051,900 USD) if all the recommended lots were sold.
 
 
 ## Installation
+Clone the source to a directory (eg: plugins/fava/tlh relative to your beancount
+source).
+
 Include this in your beancount source:
 
 ```2010-01-01 custom "fava-extension" "plugins.fava.tlh" ""```
