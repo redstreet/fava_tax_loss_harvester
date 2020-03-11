@@ -39,8 +39,8 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
 
         # Since we GROUP BY cost_date, currency, cost_currency, cost_number, we never expect any of the
         # inventories we get to have more than a single position. Thus, we can and should use
-        # get_only_position() below. We do this grouping because we are interested in seeing every lot
-        # seperately, that can be sold to generate a TLH
+        # get_only_position() below. We do this grouping because we are interested in seeing every lot (price,
+        # date) seperately, that can be sold to generate a TLH
 
         loss_threshold = self.config.get('loss_threshold', 1)
 
@@ -86,7 +86,7 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
         summary["Total unique transactions"] = len(unique_txns)
         summary["Total harvestable loss"] = sum(i.loss for i in to_sell)
         summary["Total sale value required"] = sum(i.market_value.get_only_position().units.number for i in to_sell)
-        summary = {k:'{:n}'.format(v) for k,v in summary.items()}
+        summary = {k:'{:n}'.format(int(v)) for k,v in summary.items()}
 
         harvestable_table = retrow_types, to_sell
         recents = self.build_recents(recently_bought)
@@ -113,9 +113,10 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
             date as acquisition_date,
             cost(sum(position)) as basis
           WHERE
-            date >= DATE_ADD(TODAY(), -30)
+            number > 0 AND
+            date >= DATE_ADD(TODAY(), -30) AND
+            currency = "{ticker}"
             {wash_pattern_sql}
-            AND currency = "{ticker}"
           GROUP BY date,{account_field}
           ORDER BY date DESC
           '''.format(**locals())
@@ -133,4 +134,4 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
 #     - bells and whistles:
 #       - use query context (dates? future and past?)
 #       - csv download
-
+#       - warn if price entries are older than the most recent weekday (approximation of trading day)
