@@ -27,7 +27,7 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
             value(sum(position)) as market_value,
             cost(sum(position)) as basis
           WHERE account_sortkey(account) ~ "^[01]" AND
-            account ~ '{accounts_pattern}' AND
+            account ~ '{accounts_pattern}'
           GROUP BY {account_field}, cost_date, currency, cost_currency, cost_number, account_sortkey(account)
           ORDER BY account_sortkey(account), currency, cost_date
         """.format(account_field=self.config.get('account_field', 'LEAF(account)'),
