@@ -114,11 +114,13 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
         return retrow_types, by_commodity
 
     def build_recents(self, recently_bought):
-        retval = []
+        recents = []
+        types = []
         for t in recently_bought:
             if len(recently_bought[t][1]):
-                retval.append([*recently_bought[t]])
-        return retval
+                recents += recently_bought[t][1]
+                types = recently_bought[t][0]
+        return types, recents
 
     def query_recently_bought(self, ticker):
         """Looking back 30 days for purchases that would cause wash sales"""
@@ -153,6 +155,8 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
 #         incorrectly?
 #       - assert specid / "STRICT"
 #     - bells and whistles:
+#       - add wash amount to summary
+#       - add wash * to by commodity wash
 #       - use query context (dates? future and past?)
 #       - csv download
 #       - warn if price entries are older than the most recent weekday (approximation of trading day)

@@ -40,13 +40,10 @@
 
 
 <h3>Purchases within the past 30 days creating wash sales</h3>
-{% if harvests[2]|length == 0 %}
+{% if harvests[2][0]|length == 0 %}
    <p>None found!</p>
 {% else %}
-  {% for wash_buys in harvests[2] %}
-      {{ querytable.querytable(None, *wash_buys) }}
-      <br />
-  {% endfor %}
+  {{ querytable.querytable(None, *harvests[2]) }}
 {% endif %}
 
 
