@@ -99,19 +99,17 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
         """Group input by sum(commodity)
         """
 
-        retrow_types = [('currency', str), ('total_units', Decimal), ('total_loss', Decimal)]
+        retrow_types = [('currency', str), ('total_loss', Decimal)]
         RetRow = collections.namedtuple('RetRow', [i[0] for i in retrow_types])
 
-        units = collections.defaultdict(Decimal)
         losses = collections.defaultdict(Decimal)
         for row in rrows:
             ticker = row.units.get_only_position().units.currency
-            units[ticker] += row.units.get_only_position().units.number
             losses[ticker] += row.loss
 
         by_commodity = []
-        for t in units:
-            by_commodity.append(RetRow(t, units[t], losses[t]))
+        for t in losses:
+            by_commodity.append(RetRow(t, losses[t]))
 
         return retrow_types, by_commodity
 
