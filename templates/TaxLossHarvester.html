@@ -5,32 +5,37 @@
 
 {% set harvests = extension.harvestable(None, None) %}
 
-<h3>Summary</h3>
-<table class="sortable">
-  <thead>
-    <tr>
-      <th data-sort="string">{{ _('Summary') }}</th>
-      <th data-sort="string">{{ _('Val') }}</th>
-    </tr>
-  </thead>
-  <tbody>
+<div class="row">
+  <div class="column">
+    <h3 style="text-align:left">Summary</h3>
+    <table class="sortable">
+      <thead>
+        <tr>
+          <th data-sort="string">{{ _('Summary') }}</th>
+          <th data-sort="string">{{ _('Val') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for key, value in harvests[1].items() %}
+        <tr>
+          <td>{{ key }}</td>
+          <td align="right">{{ value }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <br />
+  </div>
+  <div class="column">
+    <h3 style="text-align:left">Losses by Commodity</h3>
+    {{ querytable.querytable(None, *harvests[3]) }}
+    <br />
+  </div>
+</div>
 
-    {% for key, value in harvests[1].items() %}
-    <tr>
-      <td>{{ key }}</td>
-      <td align="right">{{ value }}</td>
-    </tr>
-    {% endfor %}
-
-  </tbody>
-</table>
-<br />
 
 
 
-<h3>Harvestable Losses by Commodity</h3>
-{{ querytable.querytable(None, *harvests[3]) }}
-<br />
 
 
 <h3>Candidates for tax loss harvesting</h3>
@@ -41,9 +46,9 @@
 
 <h3>Purchases within the past 30 days creating wash sales</h3>
 {% if harvests[2][0]|length == 0 %}
-   <p>None found!</p>
+<p>None found!</p>
 {% else %}
-  {{ querytable.querytable(None, *harvests[2]) }}
+{{ querytable.querytable(None, *harvests[2]) }}
 {% endif %}
 
 
