@@ -77,26 +77,50 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
                 to_sell.append(RetRow(row.account, row.units, row.acquisition_date, 
                     row.market_value, loss, wash))
 
+        harvestable_table = retrow_types, to_sell
+        harvestable_by_commodity = self.harvestable_by_commodity(retrow_types, to_sell)
+
         # Summary
         locale.setlocale(locale.LC_ALL, '')
         summary = {}
+        summary["Total harvestable loss"] = sum(i.loss for i in to_sell)
+        summary["Total sale value required"] = sum(i.market_value.get_only_position().units.number for i in to_sell)
+        summary["Commmodities with a loss"] = len(harvestable_by_commodity[1])
         summary["Total transactions"] = len(to_sell)
         unique_txns = set((r.account, r.units.get_only_position().units.currency) for r in to_sell)
         summary["Total unique transactions"] = len(unique_txns)
-        summary["Total harvestable loss"] = sum(i.loss for i in to_sell)
-        summary["Total sale value required"] = sum(i.market_value.get_only_position().units.number for i in to_sell)
         summary = {k:'{:n}'.format(int(v)) for k,v in summary.items()}
 
-        harvestable_table = retrow_types, to_sell
+
         recents = self.build_recents(recently_bought)
-        return harvestable_table, summary, recents
+        return harvestable_table, summary, recents, harvestable_by_commodity
+
+    def harvestable_by_commodity(self, rtype, rrows):
+        """Group input by sum(commodity)
+        """
+
+        retrow_types = [('currency', str), ('total_loss', Decimal)]
+        RetRow = collections.namedtuple('RetRow', [i[0] for i in retrow_types])
+
+        losses = collections.defaultdict(Decimal)
+        for row in rrows:
+            ticker = row.units.get_only_position().units.currency
+            losses[ticker] += row.loss
+
+        by_commodity = []
+        for t in losses:
+            by_commodity.append(RetRow(t, losses[t]))
+
+        return retrow_types, by_commodity
 
     def build_recents(self, recently_bought):
-        retval = []
+        recents = []
+        types = []
         for t in recently_bought:
             if len(recently_bought[t][1]):
-                retval.append([*recently_bought[t]])
-        return retval
+                recents += recently_bought[t][1]
+                types = recently_bought[t][0]
+        return types, recents
 
     def query_recently_bought(self, ticker):
         """Looking back 30 days for purchases that would cause wash sales"""
@@ -131,6 +155,8 @@ class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
 #         incorrectly?
 #       - assert specid / "STRICT"
 #     - bells and whistles:
+#       - add wash amount to summary
+#       - add wash * to by commodity wash
 #       - use query context (dates? future and past?)
 #       - csv download
 #       - warn if price entries are older than the most recent weekday (approximation of trading day)

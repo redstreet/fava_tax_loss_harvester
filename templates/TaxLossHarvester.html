@@ -1,59 +1,54 @@
 {% import "_query_table.html" as querytable with context %}
 
-{% set qharvestable = 'SELECT LEAF(account),
-        units(sum(position)) as units,
-        cost_number as cost,
-        first(getprice(currency, cost_currency)) as price,
-        cost(sum(position)) as book_value,
-        value(sum(position)) as market_value,
-        cost_date as acquisition_date
-      WHERE account_sortkey(account) ~ "^[01]" AND
-        account ~ "Assets:Investments"
-      GROUP BY LEAF(account), cost_date, currency, cost_currency, cost_number, account_sortkey(account)
-      ORDER BY account_sortkey(account), currency, cost_date'
-%}
-
-
 <h2>Tax Loss Harvester</h2>
 <br />
 
 {% set harvests = extension.harvestable(None, None) %}
+
+<div class="row">
+  <div class="column">
+    <h3 style="text-align:left">Summary</h3>
+    <table class="sortable">
+      <thead>
+        <tr>
+          <th data-sort="string">{{ _('Summary') }}</th>
+          <th data-sort="string">{{ _('Val') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for key, value in harvests[1].items() %}
+        <tr>
+          <td>{{ key }}</td>
+          <td align="right">{{ value }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <br />
+  </div>
+  <div class="column">
+    <h3 style="text-align:left">Losses by Commodity</h3>
+    {{ querytable.querytable(None, *harvests[3]) }}
+    <br />
+  </div>
+</div>
+
+
+
+
+
 
 <h3>Candidates for tax loss harvesting</h3>
 {{ querytable.querytable(None, *harvests[0]) }}
 <br />
 
 
-<table class="sortable">
-  <thead>
-    <tr>
-      <th data-sort="string">{{ _('Summary') }}</th>
-      <th data-sort="string">{{ _('Val') }}</th>
-    </tr>
-  </thead>
-  <tbody>
-
-    {% for key, value in harvests[1].items() %}
-    <tr>
-      <td>{{ key }}</td>
-      <td align="right">{{ value }}</td>
-    </tr>
-    {% endfor %}
-
-  </tbody>
-</table>
-<br />
-
-
 
 <h3>Purchases within the past 30 days creating wash sales</h3>
-{% if harvests[2]|length == 0 %}
-   <p>None found!</p>
+{% if harvests[2][0]|length == 0 %}
+<p>None found!</p>
 {% else %}
-  {% for wash_buys in harvests[2] %}
-      {{ querytable.querytable(None, *wash_buys) }}
-      <br />
-  {% endfor %}
+{{ querytable.querytable(None, *harvests[2]) }}
 {% endif %}
 
 
