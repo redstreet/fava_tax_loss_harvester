@@ -3,7 +3,7 @@
 <h2>Tax Loss Harvester</h2>
 <br />
 
-{% set harvests = extension.harvestable(None, None) %}
+{% set harvests = extension.build_tlh_tables(None, None) %}
 
 <div class="row">
   <div class="column">

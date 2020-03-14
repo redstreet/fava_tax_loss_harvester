@@ -1,162 +1,25 @@
 """Tax loss harvester extension for Fava.
 """
-import collections
-import locale
-import re
-
-from beancount.core.data import iter_entry_dates, Open
-from beancount.core.number import ZERO, Decimal, D
-
 from fava.ext import FavaExtensionBase
+from . import libtlh
 
 class TaxLossHarvester(FavaExtensionBase):  # pragma: no cover
     '''Tax Loss Harvester Fava (Beancount) Plugin
     '''
     report_title = "Tax Loss Harvester"
 
-    def harvestable(self, begin=None, end=None):
-        """Find tax loss harvestable lots.
-        - This is intended for the US, but may be adaptable to other countries.
-        - This assumes SpecID (Specific Identification of Shares) is the method used for these accounts
-        """
-
-        sql = """
-        SELECT {account_field} as account,
-            units(sum(position)) as units,
-            cost_date as acquisition_date,
-            value(sum(position)) as market_value,
-            cost(sum(position)) as basis
-          WHERE account_sortkey(account) ~ "^[01]" AND
-            account ~ '{accounts_pattern}'
-          GROUP BY {account_field}, cost_date, currency, cost_currency, cost_number, account_sortkey(account)
-          ORDER BY account_sortkey(account), currency, cost_date
-        """.format(account_field=self.config.get('account_field', 'LEAF(account)'),
-                accounts_pattern=self.config.get('accounts_pattern', ''))
-        contents, rtypes, rrows = self.ledger.query_shell.execute_query(sql)
-        if not rtypes:
-            return [], {}, [[]]
-
-        # Since we GROUP BY cost_date, currency, cost_currency, cost_number, we never expect any of the
-        # inventories we get to have more than a single position. Thus, we can and should use
-        # get_only_position() below. We do this grouping because we are interested in seeing every lot (price,
-        # date) seperately, that can be sold to generate a TLH
-
-        loss_threshold = self.config.get('loss_threshold', 1)
-
-        # our output table is slightly different from our query table:
-        retrow_types = rtypes[:-1] +  [('loss', Decimal), ('wash', str)]
-
-        # rtypes:
-        # [('account', <class 'str'>),
-        #  ('units', <class 'beancount.core.inventory.Inventory'>),
-        #  ('acquisition_date', <class 'datetime.date'>),
-        #  ('market_value', <class 'beancount.core.inventory.Inventory'>),
-        #  ('basis', <class 'beancount.core.inventory.Inventory'>)]
-
-        RetRow = collections.namedtuple('RetRow', [i[0] for i in retrow_types])
-
-        def val(inv):
-            return inv.get_only_position().units.number
-
-        # build our output table: calculate losses, find wash sales
-        to_sell = []
-        recently_bought = {}
-        for row in rrows:
-            if row.market_value.get_only_position() and \
-             (val(row.market_value) - val(row.basis) < -loss_threshold):
-                loss = D(val(row.basis) - val(row.market_value))
-
-                # find wash sales
-                ticker = row.units.get_only_position().units.currency
-                recent = recently_bought.get(ticker, None)
-                if not recent:
-                    recent = self.query_recently_bought(ticker)
-                    recently_bought[ticker] = recent
-                wash = '*' if len(recent[1]) else ''
-
-                to_sell.append(RetRow(row.account, row.units, row.acquisition_date, 
-                    row.market_value, loss, wash))
-
-        harvestable_table = retrow_types, to_sell
-        harvestable_by_commodity = self.harvestable_by_commodity(retrow_types, to_sell)
-
-        # Summary
-        locale.setlocale(locale.LC_ALL, '')
-        summary = {}
-        summary["Total harvestable loss"] = sum(i.loss for i in to_sell)
-        summary["Total sale value required"] = sum(i.market_value.get_only_position().units.number for i in to_sell)
-        summary["Commmodities with a loss"] = len(harvestable_by_commodity[1])
-        summary["Total transactions"] = len(to_sell)
-        unique_txns = set((r.account, r.units.get_only_position().units.currency) for r in to_sell)
-        summary["Total unique transactions"] = len(unique_txns)
-        summary = {k:'{:n}'.format(int(v)) for k,v in summary.items()}
-
-
-        recents = self.build_recents(recently_bought)
-        return harvestable_table, summary, recents, harvestable_by_commodity
-
-    def harvestable_by_commodity(self, rtype, rrows):
-        """Group input by sum(commodity)
-        """
-
-        retrow_types = [('currency', str), ('total_loss', Decimal)]
-        RetRow = collections.namedtuple('RetRow', [i[0] for i in retrow_types])
-
-        losses = collections.defaultdict(Decimal)
-        for row in rrows:
-            ticker = row.units.get_only_position().units.currency
-            losses[ticker] += row.loss
-
-        by_commodity = []
-        for t in losses:
-            by_commodity.append(RetRow(t, losses[t]))
-
-        return retrow_types, by_commodity
-
-    def build_recents(self, recently_bought):
-        recents = []
-        types = []
-        for t in recently_bought:
-            if len(recently_bought[t][1]):
-                recents += recently_bought[t][1]
-                types = recently_bought[t][0]
-        return types, recents
-
-    def query_recently_bought(self, ticker):
-        """Looking back 30 days for purchases that would cause wash sales"""
-
-        wash_pattern = self.config.get('wash_pattern', '')
-        wash_pattern_sql = 'AND account ~ "{}"'.format(wash_pattern) if wash_pattern else ''
-        account_field=self.config.get('account_field', 'LEAF(account)')
-
-        sql = '''
-        SELECT
-            {account_field} as account,
-            units(sum(position)) as units,
-            date as acquisition_date,
-            cost(sum(position)) as basis
-          WHERE
-            number > 0 AND
-            date >= DATE_ADD(TODAY(), -30) AND
-            currency = "{ticker}"
-            {wash_pattern_sql}
-          GROUP BY date,{account_field}
-          ORDER BY date DESC
-          '''.format(**locals())
+    def query_func(self, sql):
         contents, rtypes, rrows = self.ledger.query_shell.execute_query(sql)
         return rtypes, rrows
 
+    def build_tlh_tables(self, begin=None, end=None):
+        """Build fava TLH tables using TLH library
+        """
 
-# TODO:
-#     - display main table:
-#       - test cases for wash sales (can't have bought within 30 days; edge cases of 29/30/31 days)
-#         - date <= DATE_ADD(TODAY(), -30): is this correct?
-#       - will grouping by cost_date mean multiple lots with different costs on the same day be rendered
-#         incorrectly?
-#       - assert specid / "STRICT"
-#     - bells and whistles:
-#       - add wash amount to summary
-#       - add wash * to by commodity wash
-#       - use query context (dates? future and past?)
-#       - csv download
-#       - warn if price entries are older than the most recent weekday (approximation of trading day)
+        retrow_types, to_sell, recent_purchases = libtlh.find_harvestable_lots(self.query_func, self.config)
+        harvestable_table = retrow_types, to_sell
+        by_commodity = libtlh.harvestable_by_commodity(*harvestable_table)
+        summary = libtlh.summarize_tlh(harvestable_table, by_commodity)
+        recents = libtlh.build_recents(recent_purchases)
+
+        return harvestable_table, summary, recents, by_commodity
