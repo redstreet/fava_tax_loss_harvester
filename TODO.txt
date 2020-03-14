@@ -12,3 +12,11 @@ bells and whistles:
   - use query context (dates? future and past?)
   - csv download
   - warn if price entries are older than the most recent weekday (approximation of trading day)
+
+
+Command line client:
+----------------------------------------------------------------------------------------
+# TODO:
+# - print TLH pairs
+# - analysis of TLH pairs: can't be present in both sell and buy columns!
+# - print DO-NOT-BUY-UNTIL-WARNING list
