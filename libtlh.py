@@ -4,6 +4,15 @@ from beancount.core.number import ZERO, Decimal, D
 import collections
 import locale
 
+
+def get_tables(query_func, config):
+    retrow_types, to_sell, recent_purchases = find_harvestable_lots(query_func, config)
+    harvestable_table = retrow_types, to_sell
+    by_commodity = harvestable_by_commodity(*harvestable_table)
+    summary = summarize_tlh(harvestable_table, by_commodity)
+    recents = build_recents(recent_purchases)
+    return harvestable_table, summary, recents, by_commodity
+
 def find_harvestable_lots(query_func, options):
     """Find tax loss harvestable lots.
     - This is intended for the US, but may be adaptable to other countries.
