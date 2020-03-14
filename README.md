@@ -67,6 +67,15 @@ include your tax advantaged and all investment accounts.
 
 ---
 
+## Limitations
+
+- Partial wash sales, or cases where it is not obvious as to how to match the purchases
+  and sales, are not displayed due to their
+  [complexity.](https://fairmark.com/investment-taxation/capital-gain/wash/wash-sale-matching-rules/)
+
+- Booking via specific identification of shares is assumed on all taxable accounts. This
+  translates to "STRICT" booking in beancount.
+
 
 TODO:
 - show if a loss generated would be long term or short term
