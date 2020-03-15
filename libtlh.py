@@ -5,8 +5,8 @@ import collections
 import locale
 
 
-def get_tables(query_func, config):
-    retrow_types, to_sell, recent_purchases = find_harvestable_lots(query_func, config)
+def get_tables(query_func, options):
+    retrow_types, to_sell, recent_purchases = find_harvestable_lots(query_func, options)
     harvestable_table = retrow_types, to_sell
     by_commodity = harvestable_by_commodity(*harvestable_table)
     summary = summarize_tlh(harvestable_table, by_commodity)

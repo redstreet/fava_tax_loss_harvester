@@ -56,7 +56,7 @@ def tlh(beancount_file,
     if not brief:
         pretty_print("Lot detail", *harvestable_table)
         pretty_print("Wash sale purchases:", *recents)
-        print("See fava plugin for better formatted output")
+        print("See fava plugin for better formatted and sortable output.")
         warning = '''Note:
         1) Do NOT repurchase tickers within 30 days to avoid a wash sale.
         2) Turn OFF dividend reinvestment for all these tickers across ALL accounts
