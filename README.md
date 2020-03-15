@@ -1,8 +1,8 @@
-# fava_tax_loss_harvester
+# Fava/Beancount Tax Loss Harvester
 Tax loss harvester plugin for Fava (Beancount personal finance software).
 
 Reports the set of lots that can be tax loss harvested from your beancount input file.
-Includes a comprehensive wash sale report. Example:
+Also determines which of them would trigger wash sales. Example:
 
 ![TLH screenshot](./readme-screenshot.png)
 
@@ -11,23 +11,33 @@ listed. However, 1 BNCT of that would be considered a wash sale and will not be
 allowable. It also shows the account and quantities of each commodity to sell total sale
 proceeds (1,051,900 USD) if all the recommended lots were sold.
 
+A Fava extension and a beancount command line client are both included.
+
+## Beancount Command Line Client
+
+Requires python3, argcomplete, and tabulate:
+```pip3 install argcomplete tabulate```
+
+Example invocation:
+```./tlh.py example.bc -a "Assets:Investments:Taxable" --wash-pattern "Assets:Investments"```
+
+```--brief``` displays just the summary. See ```./tlh.py --help``` for all options.
 
 
-
-## Installation
-Clone the source to a directory (eg: plugins/fava/tlh relative to your beancount
+## Fava Installation
+Clone the source to a directory (eg: extensions/fava/tlh relative to your beancount
 source).
 
 Include this in your beancount source:
 
-```2010-01-01 custom "fava-extension" "plugins.fava.tlh" ""```
+```2010-01-01 custom "fava-extension" "extensions.fava.tlh" ""```
 
 ## Configuration
 
 Configure TLH through your beancount sources. Example:
 
 ```
-2010-01-01 custom "fava-extension" "plugins.fava.tlh" "{
+2010-01-01 custom "fava-extension" "extensions.fava.tlh" "{
   'account_field': 'account',
   'accounts_pattern': 'Assets:Investments:Taxable',
   'loss_threshold': 50,
