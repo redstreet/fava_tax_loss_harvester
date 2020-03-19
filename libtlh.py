@@ -13,6 +13,20 @@ def get_tables(query_func, options):
     recents = build_recents(recent_purchases)
     return harvestable_table, summary, recents, by_commodity
 
+def split_column(cols, col_name, ticker_label='ticker'):
+    retval = []
+    for i in cols:
+        if i[0] == col_name:
+            retval.append((col_name, Decimal))
+            retval.append((ticker_label, str))
+        else:
+            retval.append(i)
+    return retval
+
+def split_currency(value):
+    units = value.get_only_position().units
+    return units.number, units.currency
+
 def find_harvestable_lots(query_func, options):
     """Find tax loss harvestable lots.
     - This is intended for the US, but may be adaptable to other countries.
@@ -44,6 +58,8 @@ def find_harvestable_lots(query_func, options):
 
     # our output table is slightly different from our query table:
     retrow_types = rtypes[:-1] +  [('loss', Decimal), ('wash', str)]
+    retrow_types = split_column(retrow_types, 'units')
+    retrow_types = split_column(retrow_types, 'market_value', ticker_label='currency')
 
     # rtypes:
     # [('account', <class 'str'>),
@@ -60,6 +76,7 @@ def find_harvestable_lots(query_func, options):
     # build our output table: calculate losses, find wash sales
     to_sell = []
     recent_purchases = {}
+
     for row in rrows:
         if row.market_value.get_only_position() and \
          (val(row.market_value) - val(row.basis) < -loss_threshold):
@@ -73,8 +90,8 @@ def find_harvestable_lots(query_func, options):
                 recent_purchases[ticker] = recent
             wash = '*' if len(recent[1]) else ''
 
-            to_sell.append(RetRow(row.account, row.units, row.acquisition_date, 
-                row.market_value, loss, wash))
+            to_sell.append(RetRow(row.account, *split_currency(row.units), row.acquisition_date, 
+                *split_currency(row.market_value), loss, wash))
 
     return retrow_types, to_sell, recent_purchases
 
@@ -87,8 +104,7 @@ def harvestable_by_commodity(rtype, rrows):
 
     losses = collections.defaultdict(Decimal)
     for row in rrows:
-        ticker = row.units.get_only_position().units.currency
-        losses[ticker] += row.loss
+        losses[row.ticker] += row.loss
 
     by_commodity = []
     for t in losses:
@@ -136,10 +152,10 @@ def summarize_tlh(harvestable_table, by_commodity):
     to_sell = harvestable_table[1]
     summary = {}
     summary["Total harvestable loss"] = sum(i.loss for i in to_sell)
-    summary["Total sale value required"] = sum(i.market_value.get_only_position().units.number for i in to_sell)
+    summary["Total sale value required"] = sum(i.market_value for i in to_sell)
     summary["Commmodities with a loss"] = len(by_commodity[1])
     summary["Total transactions"] = len(to_sell)
-    unique_txns = set((r.account, r.units.get_only_position().units.currency) for r in to_sell)
+    unique_txns = set((r.account, r.ticker) for r in to_sell)
     summary["Total unique transactions"] = len(unique_txns)
     summary = {k:'{:n}'.format(int(v)) for k, v in summary.items()}
     return summary
