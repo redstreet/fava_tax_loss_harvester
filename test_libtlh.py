@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
+import functools
+import tempfile
+import datetime
+
 from beancount.utils import test_utils
 from beancount import loader
 from beancount.query import query
-import functools
 import libtlh
-import tempfile
-import datetime
+
+# python3 -m unittest discover . to run
 
 @functools.lru_cache(maxsize=1)
 def dates():
@@ -23,7 +26,8 @@ def dates():
     return retval
 
 def insert_dates(function, **kwargs):
-    """A decorator that rewrites the function's docstring with dates"""
+    """A decorator that rewrites the function's docstring with dates. Needed here because TLH looks back at
+    the past 30 days, which means all test cases need to be aware of this period."""
 
     @functools.wraps(function)
     def new_function(self, filename):
