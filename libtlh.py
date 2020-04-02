@@ -99,16 +99,18 @@ def harvestable_by_commodity(rtype, rrows):
     """Group input by sum(commodity)
     """
 
-    retrow_types = [('currency', str), ('total_loss', Decimal)]
+    retrow_types = [('currency', str), ('total_loss', Decimal), ('market_value', Decimal)]
     RetRow = collections.namedtuple('RetRow', [i[0] for i in retrow_types])
 
     losses = collections.defaultdict(Decimal)
+    market_value = collections.defaultdict(Decimal)
     for row in rrows:
         losses[row.ticker] += row.loss
+        market_value[row.ticker] += row.market_value
 
     by_commodity = []
-    for t in losses:
-        by_commodity.append(RetRow(t, losses[t]))
+    for ticker in losses:
+        by_commodity.append(RetRow(ticker, losses[ticker], market_value[ticker]))
 
     return retrow_types, by_commodity
 
@@ -154,7 +156,7 @@ def summarize_tlh(harvestable_table, by_commodity):
     summary["Total harvestable loss"] = sum(i.loss for i in to_sell)
     summary["Total sale value required"] = sum(i.market_value for i in to_sell)
     summary["Commmodities with a loss"] = len(by_commodity[1])
-    summary["Total transactions"] = len(to_sell)
+    summary["Number of lots to sell"] = len(to_sell)
     unique_txns = set((r.account, r.ticker) for r in to_sell)
     summary["Total unique transactions"] = len(unique_txns)
     summary = {k:'{:n}'.format(int(v)) for k, v in summary.items()}
