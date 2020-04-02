@@ -95,20 +95,23 @@ def find_harvestable_lots(query_func, options):
 
     return retrow_types, to_sell, recent_purchases
 
+
 def harvestable_by_commodity(rtype, rrows):
     """Group input by sum(commodity)
     """
 
-    retrow_types = [('currency', str), ('total_loss', Decimal)]
+    retrow_types = [('currency', str), ('total_loss', Decimal), ('market_value', Decimal)]
     RetRow = collections.namedtuple('RetRow', [i[0] for i in retrow_types])
 
     losses = collections.defaultdict(Decimal)
+    market_value = collections.defaultdict(Decimal)
     for row in rrows:
         losses[row.ticker] += row.loss
+        market_value[row.ticker] += row.market_value
 
     by_commodity = []
-    for t in losses:
-        by_commodity.append(RetRow(t, losses[t]))
+    for ticker in losses:
+        by_commodity.append(RetRow(ticker, losses[ticker], market_value[ticker]))
 
     return retrow_types, by_commodity
 
@@ -125,8 +128,12 @@ def query_recently_bought(ticker, query_func, options):
     """Looking back 30 days for purchases that would cause wash sales"""
 
     wash_pattern = options.get('wash_pattern', '')
-    account_field = options.get('account_field', 'LEAF(account)')
+    wash_pattern_exclude = options.get('wash_pattern_exclude', '')
     wash_pattern_sql = 'AND account ~ "{}"'.format(wash_pattern) if wash_pattern else ''
+    wash_pattern_exclude_sql = 'AND NOT STR(account) ~ "{}"'.format(wash_pattern_exclude) \
+                if wash_pattern_exclude else ''
+    account_field = options.get('account_field', 'LEAF(account)')
+
     sql = '''
     SELECT
         {account_field} as account,
@@ -138,6 +145,7 @@ def query_recently_bought(ticker, query_func, options):
         date >= DATE_ADD(TODAY(), -30) AND
         currency = "{ticker}"
         {wash_pattern_sql}
+        {wash_pattern_exclude_sql}
       GROUP BY date,{account_field}
       ORDER BY date DESC
       '''.format(**locals())
@@ -154,7 +162,7 @@ def summarize_tlh(harvestable_table, by_commodity):
     summary["Total harvestable loss"] = sum(i.loss for i in to_sell)
     summary["Total sale value required"] = sum(i.market_value for i in to_sell)
     summary["Commmodities with a loss"] = len(by_commodity[1])
-    summary["Total transactions"] = len(to_sell)
+    summary["Number of lots to sell"] = len(to_sell)
     unique_txns = set((r.account, r.ticker) for r in to_sell)
     summary["Total unique transactions"] = len(unique_txns)
     summary = {k:'{:n}'.format(int(v)) for k, v in summary.items()}
