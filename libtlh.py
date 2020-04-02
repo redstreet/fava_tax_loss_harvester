@@ -95,6 +95,7 @@ def find_harvestable_lots(query_func, options):
 
     return retrow_types, to_sell, recent_purchases
 
+
 def harvestable_by_commodity(rtype, rrows):
     """Group input by sum(commodity)
     """
@@ -127,8 +128,12 @@ def query_recently_bought(ticker, query_func, options):
     """Looking back 30 days for purchases that would cause wash sales"""
 
     wash_pattern = options.get('wash_pattern', '')
-    account_field = options.get('account_field', 'LEAF(account)')
+    wash_pattern_exclude = options.get('wash_pattern_exclude', '')
     wash_pattern_sql = 'AND account ~ "{}"'.format(wash_pattern) if wash_pattern else ''
+    wash_pattern_exclude_sql = 'AND NOT STR(account) ~ "{}"'.format(wash_pattern_exclude) \
+                if wash_pattern_exclude else ''
+    account_field = options.get('account_field', 'LEAF(account)')
+
     sql = '''
     SELECT
         {account_field} as account,
@@ -140,6 +145,7 @@ def query_recently_bought(ticker, query_func, options):
         date >= DATE_ADD(TODAY(), -30) AND
         currency = "{ticker}"
         {wash_pattern_sql}
+        {wash_pattern_exclude_sql}
       GROUP BY date,{account_field}
       ORDER BY date DESC
       '''.format(**locals())

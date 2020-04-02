@@ -22,6 +22,7 @@ def dates():
               'm10': minusdays(today, 10),
               'm15': minusdays(today, 15),
               'm20': minusdays(today, 20),
+              'm50': minusdays(today, 50),
               }
     return retval
 
@@ -38,7 +39,9 @@ def insert_dates(function, **kwargs):
 
 class TestScriptCheck(test_utils.TestCase):
     def setUp(self):
-        self.options = {'accounts_pattern': "Assets:Investments:Taxable", 'wash_pattern': "Assets:Investments"}
+        self.options = {'accounts_pattern': "Assets:Investments:Taxable",
+                'wash_pattern': "Assets:Investments",
+                'wash_pattern_exclude': "Assets:Investments:TaxDeferred-401k"}
 
     def query_func(self, sql):
         entries, _, options_map = loader.load_file(self.f)
@@ -84,5 +87,57 @@ class TestScriptCheck(test_utils.TestCase):
         retrow_types, to_sell, recent_purchases = libtlh.find_harvestable_lots(self.query_func, self.options)
 
         self.assertEqual(1, len(to_sell))
-        self.assertEqual(1, len(recent_purchases))
+        self.assertEqual(1, len(recent_purchases['BNCT'][1]))
+
+    @test_utils.docfile
+    @insert_dates
+    def test_wash(self, f):
+        """
+        2010-01-01 open Assets:Investments:Taxable:Brokerage
+        2010-01-01 open Assets:Bank
+
+        {m50} * "Buy stock"
+         Assets:Investments:Taxable:Brokerage 1 BNCT {{200 USD}}
+         Assets:Bank
+
+        {m10} * "Buy stock"
+         Assets:Investments:Taxable:Brokerage 1 BNCT {{200 USD}}
+         Assets:Bank
+
+        {m1} price BNCT 100 USD
+        """
+        self.f = f
+
+        retrow_types, to_sell, recent_purchases = libtlh.find_harvestable_lots(self.query_func, self.options)
+
+        washes = sum([1 if i.wash=='*' else 0 for i in to_sell])
+        self.assertEqual(2, washes)
+        self.assertEqual(2, len(to_sell))
+        self.assertEqual(1, len(recent_purchases['BNCT'][1]))
+
+    @test_utils.docfile
+    @insert_dates
+    def test_wash_exclude(self, f):
+        """
+        2010-01-01 open Assets:Investments:Taxable:Brokerage
+        2010-01-01 open Assets:Bank
+
+        {m50} * "Buy stock"
+         Assets:Investments:Taxable:Brokerage 1 BNCT {{200 USD}}
+         Assets:Bank
+
+        {m10} * "Buy stock"
+         Assets:Investments:TaxDeferred-401k:Brokerage 1 BNCT {{201 USD}}
+         Assets:Bank
+
+        {m1} price BNCT 100 USD
+        """
+        self.f = f
+
+        retrow_types, to_sell, recent_purchases = libtlh.find_harvestable_lots(self.query_func, self.options)
+
+        washes = sum([1 if i.wash=='*' else 0 for i in to_sell])
+        self.assertEqual(0, washes)
+        self.assertEqual(1, len(to_sell))
+        self.assertEqual(0, len(recent_purchases['BNCT'][1]))
 
