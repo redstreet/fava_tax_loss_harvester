@@ -1,5 +1,7 @@
 # Fava/Beancount Tax Loss Harvester
-Tax loss harvester plugin for Fava (Beancount personal finance software).
+Tax loss harvester extension for Fava (Beancount personal finance software).
+
+# This extension has now been been folded into the [fava extension](https://github.com/redstreet/fava_investor) and will no longer be maintained here.
 
 Reports the set of lots that can be tax loss harvested from your beancount input file.
 Also determines which of them would trigger wash sales. Example:
